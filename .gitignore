@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+private-storage/
+*.log
+setup-credentials*
+.admin-setup-status.json
+desktop.ini
+Thumbs.db
