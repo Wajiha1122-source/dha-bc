@@ -2,6 +2,8 @@
 
 Internal application for **Site Plan / Possession Letter**. React/TypeScript/Vite/Tailwind client; Express/TypeScript API; PostgreSQL records and sessions; private filesystem documents.
 
+**Hosting on Render:** see [deployment instructions](docs/DEPLOYMENT.md) and `render.yaml`. GitHub excludes `.env`; configure hosting secrets separately. The current full-stack application is not a standalone Vercel static site.
+
 ## Start from Command Prompt (CMD)
 
 The application runs with Node.js. PowerShell is not required.

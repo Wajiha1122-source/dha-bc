@@ -1,0 +1,30 @@
+# Deploy as a Render Blueprint. The persistent disk requires a paid service.
+services:
+  - type: web
+    name: dha-bc
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: building-control-documents
+      mountPath: /var/data/building-control
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.19.0
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "1"
+      - key: STORAGE_DIR
+        value: /var/data/building-control
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+# APP_ORIGIN defaults to Render's RENDER_EXTERNAL_URL. Set APP_ORIGIN explicitly
+# if users will access this service through a custom domain.

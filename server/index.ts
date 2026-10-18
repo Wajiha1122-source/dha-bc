@@ -14,9 +14,10 @@ import {applications} from './applications';
 import {documents} from './documents';
 import {administration} from './administration';
 import {reports} from './reports';
-const secret=process.env.SESSION_SECRET;const origin=process.env.APP_ORIGIN||'http://localhost:5173';const production=process.env.NODE_ENV==='production';
-if(!process.env.DATABASE_URL||!secret||secret.length<48)throw new Error('Set DATABASE_URL and a random SESSION_SECRET of at least 48 characters. See README.');
-export const app=express();app.disable('x-powered-by');if(production&&process.env.TRUST_PROXY==='1')app.set('trust proxy',1);
+import {runtimeConfig} from './config';
+const config=runtimeConfig(process.env);
+const {secret,origin,production}=config;
+export const app=express();app.disable('x-powered-by');if(config.trustProxy)app.set('trust proxy',1);
 app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],objectSrc:["'none'"],frameAncestors:["'none'"],upgradeInsecureRequests:production?[]:null}}}));
 app.use('/api',(_req,res,next)=>{res.setHeader('Cache-Control','no-store');next()});
 app.get('/api/status',(_req,res)=>res.json({application:'dha-building-control',ok:true}));
@@ -32,6 +33,6 @@ app.use('/api',(_req,res)=>res.status(404).json({error:'API endpoint not found.'
 if(production){app.use(express.static(path.resolve('dist'),{index:false}));app.get('/{*splat}',(_req,res)=>res.sendFile(path.resolve('dist/index.html')))}
 app.use((error:any,_req:express.Request,res:express.Response,_next:express.NextFunction)=>{if(res.headersSent)return;if(error instanceof ZodError)return res.status(400).json({error:error.issues.map(i=>(i.path.join('.')?i.path.join('.')+': ':'')+i.message).join(' ')});if(error instanceof HttpError)return res.status(error.status).json({error:error.message});if(error instanceof multer.MulterError)return res.status(400).json({error:error.code==='LIMIT_FILE_SIZE'?'The file exceeds the 10 MB limit.':'Invalid upload. Choose one supported file.'});if(error.code==='23505')return res.status(409).json({error:'This record already exists. Refresh before trying again.'});if(error.type==='entity.parse.failed')return res.status(400).json({error:'Invalid JSON request.'});console.error('Request failed:',error.code||error.name||'UnknownError');res.status(500).json({error:'The operation could not be completed. Contact your administrator if this continues.'})});
 if(process.env.NODE_ENV!=='test'){
- const server=app.listen(Number(process.env.PORT)||3001,'127.0.0.1',()=>console.log('Building Control API listening on loopback.'));
+ const server=app.listen(config.port,config.host,()=>console.log(`Building Control listening on ${config.host}:${config.port}`));
  process.on('SIGTERM',()=>server.close(()=>{void pool.end()}));
 }
