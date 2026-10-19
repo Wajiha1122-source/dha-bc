@@ -2,6 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runtimeConfig} from '../server/config';
 const base={DATABASE_URL:'postgresql://example.invalid/test',SESSION_SECRET:'s'.repeat(64)};
+test('Render overrides copied local settings that caused the port-scan timeout',()=>{
+ const c=runtimeConfig({...base,RENDER:'true',NODE_ENV:'development',HOST:'127.0.0.1',PORT:'3001',APP_ORIGIN:'http://localhost:5173',TRUST_PROXY:'0',RENDER_EXTERNAL_URL:'https://dha-example.onrender.com'});
+ assert.equal(c.host,'0.0.0.0');assert.equal(c.production,true);assert.equal(c.origin,'https://dha-example.onrender.com');assert.equal(c.trustProxy,true);assert.equal(c.port,3001);
+});
+test('Render without explicit NODE_ENV or PORT uses production and default public port',()=>{
+ const c=runtimeConfig({...base,RENDER:'true',RENDER_EXTERNAL_URL:'https://dha-example.onrender.com'});
+ assert.equal(c.production,true);assert.equal(c.host,'0.0.0.0');assert.equal(c.port,10000);
+});
 test('local development keeps loopback and localhost defaults',()=>{const c=runtimeConfig(base);assert.equal(c.host,'127.0.0.1');assert.equal(c.origin,'http://localhost:5173');assert.equal(c.trustProxy,false)});
 test('Render accepts generated 256-bit secret and public port',()=>{const c=runtimeConfig({...base,SESSION_SECRET:'a'.repeat(43)+'=',NODE_ENV:'production',RENDER:'true',RENDER_EXTERNAL_URL:'https://dha-example.onrender.com',PORT:'10000'});assert.equal(c.host,'0.0.0.0');assert.equal(c.port,10000);assert.equal(c.origin,'https://dha-example.onrender.com');assert.equal(c.trustProxy,true)});
 test('custom domain overrides Render origin and normalizes trailing slash',()=>{const c=runtimeConfig({...base,NODE_ENV:'production',RENDER_EXTERNAL_URL:'https://example.onrender.com',APP_ORIGIN:'https://office.example.com/'});assert.equal(c.origin,'https://office.example.com')});

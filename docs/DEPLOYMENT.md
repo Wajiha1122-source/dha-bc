@@ -4,6 +4,8 @@ The deployment screenshot shows a **Render** startup failure, not a Vercel build
 
 ## Repair the existing Render web service
 
+If logs show `listening on 127.0.0.1:3001` followed by a port-scan timeout, Render cannot reach the loopback-only listener. The latest code detects Render via its built-in `RENDER=true` variable and forces `0.0.0.0`, production frontend serving, and trusted HTTPS proxy handling even when local environment settings were copied. Copied localhost origins are replaced by Render's public URL. Keep custom HTTPS domains in `APP_ORIGIN` if applicable. Remove a manually copied `PORT=3001` to use Render's default port, or set `PORT=10000`; the app still honors any explicit valid port. Set `NODE_ENV=production` and `HOST=0.0.0.0` in the dashboard for clarity. Redeploy the latest commit on `main`; no secret changes or database reset are needed for this fix.
+
 1. Select the `dha-bc` service. In **Settings**, use:
    - Runtime: Node
    - Build command: `npm ci --include=dev && npm run build`
