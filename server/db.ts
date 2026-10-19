@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import type {Request} from 'express';
-export const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:15000,max:10});
+export const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:15000,max:process.env.VERCEL==='1'?3:10,idleTimeoutMillis:10000,allowExitOnIdle:true});
 export type DB=Pick<pg.PoolClient,'query'>;
 export async function transaction<T>(fn:(db:pg.PoolClient)=>Promise<T>):Promise<T>{const db=await pool.connect();try{await db.query('BEGIN');const result=await fn(db);await db.query('COMMIT');return result}catch(e){await db.query('ROLLBACK');throw e}finally{db.release()}}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}

@@ -9,3 +9,4 @@ setup-credentials*
 .admin-setup-status.json
 desktop.ini
 Thumbs.db
+.vercel/

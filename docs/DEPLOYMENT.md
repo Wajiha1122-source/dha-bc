@@ -28,9 +28,15 @@ The repository now includes `render.yaml`. Select **New → Blueprint** and conn
 
 ## Vercel
 
-Do not deploy this repository as a standalone Vite static site and expect the API to work. The frontend calls `/api` on the same origin. A static-only deployment has no running Express API.
+The repository includes `api/index.ts` and `vercel.json`: Vite builds the frontend, and `/api/*` routes to the Express function on the same origin. Import this GitHub repository with its root directory unchanged and Node.js 22.x. Use the repository build settings.
 
-The current document implementation also requires persistent filesystem storage. A full Vercel deployment needs a serverless-compatible API entry point and private object storage (with upload handling appropriate to function request limits), or a separately hosted backend and a carefully configured same-origin proxy. Those adaptations are **not included in this Render repair**. Use the full-stack Render service for the current implementation. No Vercel deployment has been attempted or verified.
+Set `DATABASE_URL` to the existing Neon pooled connection string (including SSL), and `SESSION_SECRET` to a cryptographically random value of at least 32 characters. These are server secrets: never prefix them with `VITE_`. Set these for Production only; previews should use a separate database and secret. Vercel supplies `VERCEL`, `VERCEL_URL` and `VERCEL_PROJECT_PRODUCTION_URL`. `APP_ORIGIN` is optional for the default production domain; set it to the exact HTTPS origin when using a custom domain. Do not copy local HOST, PORT or APP_ORIGIN values.
+
+Before deployment run `npm run db:migrate` against the target database. If moving existing documents, run `npx tsx scripts/migrate-documents.ts` on the machine holding `private-storage`. It copies files without deleting originals and reports any missing or oversized files. Vercel stores new private documents in PostgreSQL transactionally, retains access checks, and limits uploads/downloads to 4 MB to stay below its 4.5 MB function payload limit. Older larger documents must be retrieved from the original host. Database storage counts toward your database provider's capacity; provision appropriate backups and storage.
+
+Local and Render storage stays on disk by default; `DOCUMENT_STORAGE=database` switches new uploads to PostgreSQL. Run the database migration on those hosts too. Login throttling on Vercel uses shared PostgreSQL counters. Periodically remove expired rows from `bc.rate_limits` and `bc.session` as routine database maintenance.
+
+After linking the project, pushes to its production branch can trigger deployment. A GitHub connection alone does not configure secrets or grant CLI access. Complete `vercel login` to manage the account from this computer. Verify the checks below before treating a deployment as ready.
 
 ## Verification after deploy
 

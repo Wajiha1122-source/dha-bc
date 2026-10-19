@@ -1,7 +1,8 @@
 export function runtimeConfig(env: NodeJS.ProcessEnv) {
   const onRender = env.RENDER === 'true';
+  const onVercel = env.VERCEL === '1';
   // Hosted startup must not inherit local development binding/settings.
-  const production = onRender || env.NODE_ENV === 'production';
+  const production = onRender || onVercel || env.NODE_ENV === 'production';
   if (!env.DATABASE_URL?.trim()) {
     throw new Error('Missing DATABASE_URL. Set it in the hosting service Environment settings; local .env files are not uploaded to GitHub.');
   }
@@ -11,12 +12,13 @@ export function runtimeConfig(env: NodeJS.ProcessEnv) {
     throw new Error('Missing or invalid SESSION_SECRET. Set a randomly generated secret of at least 32 characters in the hosting service Environment settings.');
   }
   let explicitOrigin = env.APP_ORIGIN;
-  if (onRender && explicitOrigin) {
+  if ((onRender || onVercel) && explicitOrigin) {
     try {
       if (['localhost', '127.0.0.1', '[::1]'].includes(new URL(explicitOrigin).hostname)) explicitOrigin = undefined;
     } catch { /* Invalid origins are rejected below. */ }
   }
-  const configuredOrigin = explicitOrigin || env.RENDER_EXTERNAL_URL || (production ? '' : 'http://localhost:5173');
+  const vercelHost = env.VERCEL_ENV === 'production' ? env.VERCEL_PROJECT_PRODUCTION_URL || env.VERCEL_URL : env.VERCEL_URL;
+  const configuredOrigin = explicitOrigin || (onVercel && vercelHost ? `https://${vercelHost}` : '') || env.RENDER_EXTERNAL_URL || (production ? '' : 'http://localhost:5173');
   if (!configuredOrigin) throw new Error('Missing APP_ORIGIN. Set it to the public HTTPS application URL.');
   let url: URL;
   try { url = new URL(configuredOrigin); } catch { throw new Error('APP_ORIGIN must be a complete application URL.'); }
@@ -29,6 +31,6 @@ export function runtimeConfig(env: NodeJS.ProcessEnv) {
   return {
     production, secret, origin: url.origin, port,
     host: onRender ? '0.0.0.0' : env.HOST || (production ? '0.0.0.0' : '127.0.0.1'),
-    trustProxy: onRender || (production && env.TRUST_PROXY === '1'),
+    trustProxy: onRender || onVercel || (production && env.TRUST_PROXY === '1'),
   };
 }

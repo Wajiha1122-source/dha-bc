@@ -20,6 +20,13 @@ test('PostgreSQL HTTP integration: authentication, roles, documents, workflow, r
  let server:any;
  try{
  await real.query((await fs.readFile(new URL('../database/001_initial.sql',import.meta.url),'utf8')).replace(/\bbc\b/g,schema));
+ await pool.query(await fs.readFile(new URL('../database/002_document_contents.sql',import.meta.url),'utf8'));
+ const {DatabaseRateStore}=await import('../server/rate-store');
+ const limiter=new DatabaseRateStore('integration:');
+ const increments=await Promise.all(Array.from({length:6},()=>limiter.increment('ip')));
+ assert.deepEqual(increments.map(x=>x.totalHits).sort((a,b)=>a-b),[1,2,3,4,5,6]);
+ await pool.query("UPDATE bc.rate_limits SET expires_at=now()-interval '1 minute'");
+ assert.equal((await limiter.increment('ip')).totalHits,1);
  for(const [name,perms] of Object.entries(defaults))await pool.query('INSERT INTO bc.roles(name,permissions) VALUES($1,$2)',[name,JSON.stringify(perms)]);
  const processResult=await pool.query('INSERT INTO bc.processes(name,enabled,config) VALUES($1,true,$2) RETURNING id',['Site Plan / Possession Letter',initialConfig]);
  const temporary='A1!'+randomBytes(24).toString('hex');const permanent='B2!'+randomBytes(24).toString('hex');
@@ -42,6 +49,12 @@ test('PostgreSQL HTTP integration: authentication, roles, documents, workflow, r
  const receiver=client();await receiver('/auth/me');await receiver('/auth/login','POST',{username:'integration.receiver',password:receiverPassword});await receiver('/auth/password','POST',{current:receiverPassword,password:'S4!'+randomBytes(24).toString('hex')});await receiver(prefix,'GET',undefined,404);await receiver('/users','GET',undefined,403);
  await request(prefix+'/transition','POST',{to:'approved',reason:''});await request(prefix+'/handover','POST',{recipient_name:'A'},400);await request(prefix+'/transition','POST',{to:'ready',reason:''},409);await request(prefix+'/transition','POST',{to:'preparation',reason:''});await request(prefix+'/transition','POST',{to:'ready',reason:''},409);await upload('final');await request(prefix+'/transition','POST',{to:'ready',reason:''});await upload('acknowledgement');
  const detail=await request(prefix);assert.equal(detail.documents.filter((d:any)=>d.requirement_id==='challan').length,2);assert.equal(detail.decisions.find((d:any)=>d.requirement_id==='challan').status,'Verified');
+ if(process.env.DOCUMENT_STORAGE==='database'){
+  const saved=await pool.query('SELECT content FROM bc.document_contents');
+  assert.equal(saved.rowCount,detail.documents.length);
+  assert.ok(saved.rows.every(row=>row.content.toString().startsWith('%PDF-1.4')));
+  assert.deepEqual(await fs.readdir(directory),[]);
+ }
  const handover={recipient_name:'Verified Recipient',verification:'Identity and authority checked by counter staff',delivered_copy:'Original site plan',retained_copy:'Office copy',acknowledgement_id:detail.documents.find((d:any)=>d.kind==='acknowledgement').id,final_document_id:detail.documents.find((d:any)=>d.kind==='final').id};
  await request(prefix+'/handover','POST',handover);await request(prefix+'/handover','POST',handover,409);assert.equal((await request(prefix)).application.status,'completed');assert.equal((await request('/dashboard')).counts.completed,1);assert.equal((await request('/reports')).completed,1);assert.equal((await request('/applications?q=TEST-42')).total,1);assert.ok((await request('/audit')).items.length>10);
  await assert.rejects(pool.query('DELETE FROM bc.audit'),/append-only/);

@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runtimeConfig} from '../server/config';
 const base={DATABASE_URL:'postgresql://example.invalid/test',SESSION_SECRET:'s'.repeat(64)};
+test('Vercel production uses stable production origin and proxy cookies',()=>{const c=runtimeConfig({...base,VERCEL:'1',VERCEL_ENV:'production',VERCEL_URL:'build.vercel.app',VERCEL_PROJECT_PRODUCTION_URL:'office.vercel.app',APP_ORIGIN:'http://localhost:5173'});assert.equal(c.production,true);assert.equal(c.origin,'https://office.vercel.app');assert.equal(c.trustProxy,true)});
+test('Vercel preview uses its own origin',()=>{const c=runtimeConfig({...base,VERCEL:'1',VERCEL_ENV:'preview',VERCEL_URL:'preview.vercel.app',VERCEL_PROJECT_PRODUCTION_URL:'office.vercel.app'});assert.equal(c.origin,'https://preview.vercel.app')});
 test('Render overrides copied local settings that caused the port-scan timeout',()=>{
  const c=runtimeConfig({...base,RENDER:'true',NODE_ENV:'development',HOST:'127.0.0.1',PORT:'3001',APP_ORIGIN:'http://localhost:5173',TRUST_PROXY:'0',RENDER_EXTERNAL_URL:'https://dha-example.onrender.com'});
  assert.equal(c.host,'0.0.0.0');assert.equal(c.production,true);assert.equal(c.origin,'https://dha-example.onrender.com');assert.equal(c.trustProxy,true);assert.equal(c.port,3001);
