@@ -1,5 +1,5 @@
 import type {Options, Store} from 'express-rate-limit';
-import {pool} from './db';
+import {pool} from './db.js';
 
 // Shared counters keep login limits effective across serverless instances.
 export class DatabaseRateStore implements Store {

@@ -1,9 +1,9 @@
 import {Router} from 'express';
 import argon2 from 'argon2';
 import {z} from 'zod';
-import {pool,transaction,audit,requirePermission,fail} from './db';
-import {roles,permissions,defaults} from './workflow';
-import {userInput,uuid,configInput} from './validation';
+import {pool,transaction,audit,requirePermission,fail} from './db.js';
+import {roles,permissions,defaults} from './workflow.js';
+import {userInput,uuid,configInput} from './validation.js';
 export const administration=Router();
 administration.get('/staff',async(_req,res)=>{const {rows}=await pool.query('SELECT id,name,role FROM bc.users WHERE active ORDER BY name');res.json({items:rows})});
 administration.get('/processes',async(_req,res)=>{const {rows}=await pool.query('SELECT id,name,config FROM bc.processes WHERE enabled ORDER BY name');res.json({items:rows})});

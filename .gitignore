@@ -10,3 +10,4 @@ setup-credentials*
 desktop.ini
 Thumbs.db
 .vercel/
+.runtime-check/

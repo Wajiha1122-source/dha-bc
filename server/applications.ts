@@ -1,8 +1,8 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {pool,transaction,audit,fail,requirePermission,application,accessClause,notify} from './db';
-import {applicationInput,scrutinyInput,transitionInput,handoverInput,uuid} from './validation';
-import {validateTransition,assertHandover} from './workflow';
+import {pool,transaction,audit,fail,requirePermission,application,accessClause,notify} from './db.js';
+import {applicationInput,scrutinyInput,transitionInput,handoverInput,uuid} from './validation.js';
+import {validateTransition,assertHandover} from './workflow.js';
 export const applications=Router();
 export async function decisions(db:any,id:string){const {rows}=await db.query('SELECT DISTINCT ON(requirement_id) * FROM bc.scrutiny WHERE application_id=$1 ORDER BY requirement_id,created_at DESC,id DESC',[id]);return Object.fromEntries(rows.map((r:any)=>[r.requirement_id,r.status]));}
 export function listFilter(req:any){const scope=accessClause(req);const values:any[]=[...scope.values];const clauses=[scope.sql];const add=(sql:string,value:any)=>{values.push(value);clauses.push(sql.replace('?',`$${values.length}`))};const q=z.object({q:z.string().max(160).optional(),status:z.string().max(80).optional(),from:z.union([z.iso.date(),z.literal('')]).optional(),to:z.union([z.iso.date(),z.literal('')]).optional(),page:z.coerce.number().int().min(1).max(100000).default(1),mode:z.enum(['all','mine','approval','preparation','counter']).optional(),sort:z.enum(['newest','oldest','reference']).optional(),today:z.string().optional(),overdue:z.string().optional(),group:z.string().optional()}).parse(req.query);

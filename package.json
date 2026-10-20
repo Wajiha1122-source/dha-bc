@@ -6,7 +6,8 @@
   "engines": {"node": "22.x"},
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc -p tsconfig.api.json && vite build",
+    "test:runtime": "node scripts/test-runtime.mjs",
     "start": "tsx server/index.ts",
     "db:inspect": "tsx scripts/database.ts inspect",
     "db:migrate": "tsx scripts/database.ts migrate",

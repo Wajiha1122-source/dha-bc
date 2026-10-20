@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {initialConfig,permissions,roles} from './workflow';
+import {initialConfig,permissions,roles} from './workflow.js';
 export const password=z.string().min(14).max(200).regex(/[a-z]/,'Include a lowercase letter.').regex(/[A-Z]/,'Include an uppercase letter.').regex(/[0-9]/,'Include a number.');
 const text=(max:number)=>z.string().trim().min(1).max(max);
 const optional=(max:number)=>z.string().trim().max(max).optional().default('');
